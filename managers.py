@@ -25,7 +25,8 @@ if supports_aggregates:
         default_alias = property(_default_alias)
     
         def add_to_query(self, query, alias, col, source, is_summary):
-            super(CoalesceWrapper, self).__init__(col, source, is_summary, **self.extra)
+            super(CoalesceWrapper, self).__init__(col,
+                                        source, is_summary, **self.extra)
             query.aggregate_select[alias] = self
 
 
@@ -150,19 +151,28 @@ class VoteManager(models.Manager):
             start_date = datetime.datetime(year or today.year, month, 1)
             end_date = start_date + one_month
         
-        return self.get_top(Model, start_date=start_date, end_date=end_date)
+        return self.get_top(Model, limit,
+                            start_date=start_date, end_date=end_date)
 
-    """I will fix this :)
-    def get_top_of_week(self, Model, week, limit=10):
+    def get_top_of_week(self, Model, week=None, year=None, limit=10):
+        now = datetime.datetime.now()
         
-        def get_week_days(year, week):
-            d = date(year,1,1)
-            if(d.weekday()>3):
-                d = d+timedelta(7-d.weekday())
-            else:
-                d = d - timedelta(d.weekday())
-            dlt = timedelta(days = (week-1)*7)
-            return d + dlt,  d + dlt + timedelta(days=6)"""
+        week = week or now.isocalendar()[1]
+        year = year or now.year
+        
+        d = datetime.date(year, 1, 1)
+        
+        if d.weekday() > 3:
+            d = d + datetime.timedelta(7 - d.weekday())
+        else:
+            d = d - datetime.timedelta(d.weekday())
+        delta = datetime.timedelta(days=(week-1)*7)
+        
+        start_date = d + dlt
+        end_date = d + dlt + datetime.timedelta(days=6)
+        
+        return self.get_top(Model, limit,
+                            start_date=start_date, end_date=end_date)
 
     def get_top(self, Model, limit=10, reversed=False,
                         start_date=None, end_date=None):
@@ -201,9 +211,11 @@ class VoteManager(models.Manager):
         else:
             having_score = 'AVG(vote)'
         if reversed:
-            having_sql = ' HAVING %(having_score)s < 0 ORDER BY %(having_score)s ASC LIMIT %%s'
+            having_sql = ' HAVING %(having_score)s < 0 \
+                           ORDER BY %(having_score)s ASC LIMIT %%s'
         else:
-            having_sql = ' HAVING %(having_score)s > 0 ORDER BY %(having_score)s DESC LIMIT %%s'
+            having_sql = ' HAVING %(having_score)s > 0 \
+                           ORDER BY %(having_score)s DESC LIMIT %%s'
         query += having_sql % {
             'having_score': having_score,
         }
