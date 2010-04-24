@@ -118,11 +118,12 @@ class VoteManager(models.Manager):
 
         A zero vote indicates that any existing vote should be removed.
         """
+        
         changed = False
         if not user.is_authenticated():
             user = None
         
-        if vote not in (1, 2, 3, 4, 5):
+        if vote not in (0, 1, 2, 3, 4, 5):
             raise ValueError('Invalid vote')
         ctype = ContentType.objects.get_for_model(obj)
         try:
@@ -168,8 +169,8 @@ class VoteManager(models.Manager):
             d = d - datetime.timedelta(d.weekday())
         delta = datetime.timedelta(days=(week-1)*7)
         
-        start_date = d + dlt
-        end_date = d + dlt + datetime.timedelta(days=6)
+        start_date = d + delta
+        end_date = d + delta + datetime.timedelta(days=6)
         
         return self.get_top(Model, limit,
                             start_date=start_date, end_date=end_date)
@@ -211,10 +212,10 @@ class VoteManager(models.Manager):
         else:
             having_score = 'AVG(vote)'
         if reversed:
-            having_sql = ' HAVING %(having_score)s < 0 \
+            having_sql = ' HAVING %(having_score)s <= 2 \
                            ORDER BY %(having_score)s ASC LIMIT %%s'
         else:
-            having_sql = ' HAVING %(having_score)s > 0 \
+            having_sql = ' HAVING %(having_score)s > 1 \
                            ORDER BY %(having_score)s DESC LIMIT %%s'
         query += having_sql % {
             'having_score': having_score,
